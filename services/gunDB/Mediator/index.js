@@ -96,6 +96,7 @@ const Action = require('../action-constants.js')
 const API = require('../contact-api/index')
 const Config = require('../config')
 const Event = require('../event-constants')
+const lndEvents = require('../../lnd/event-constants')
 
 /**
  * @typedef {import('../contact-api/SimpleGUN').GUNNode} GUNNode
@@ -277,9 +278,11 @@ const throwOnInvalidToken = async token => {
 class Mediator {
   /**
    * @param {Readonly<SimpleSocket>} socket
+   * @param {any} lnd
    */
-  constructor(socket) {
+  constructor(socket,lnd) {
     this.socket = socket
+    this.lnd = lnd
 
     this.connected = true
 
@@ -306,8 +309,56 @@ class Mediator {
     socket.on(Event.ON_SENT_REQUESTS, this.onSentRequests)
 
     socket.on(IS_GUN_AUTH, this.isGunAuth)
-  }
 
+    socket.on(lndEvents.ON_INVOICE,this.onLndInvoice)
+    socket.on(lndEvents.ON_TRANSACTION,this.onLndTransaction)
+  }
+  /**
+   * @param {object} body
+   */
+  onLndTransaction = async body =>{
+    console.log("got lnd transaction request")
+    let {token} = JSON.parse(body)
+    await throwOnInvalidToken(token)
+    //this.socket.emit(lndEvents.ON_TRANSACTION,{ok:"ok"})
+    const listener = {
+      /**
+       * @param {{amount : number}} transactionData
+       */
+      dataReceived : transactionData =>{
+        
+        const mex = "Confirmed "+(transactionData.amount / 100000000) + "BTC on Chain"
+        this.socket.emit(lndEvents.ON_TRANSACTION,{ok:true,
+          msg:mex,
+          origBody:{}
+        })
+      }
+    }
+    this.lnd.registerTransactionsListener(listener)
+  }
+  /**
+   * @param {object} body
+   */
+  onLndInvoice = async body =>{
+    let {token} = JSON.parse(body)
+    await throwOnInvalidToken(token)
+    /**
+     * @param {{dataReceived(data:{amt_paid_sat:number}):void}} listener
+     */
+    const listener = {
+      /**
+       * @param {{amt_paid_sat:number}} lndInvoiceData
+       */
+      dataReceived : (lndInvoiceData)=>{
+        const mex="Confirmed "+lndInvoiceData.amt_paid_sat + "sats off Chain"
+        this.socket.emit(lndEvents.ON_INVOICE,{ok:true,
+          msg:mex,
+          origBody:{}
+        })
+      }
+    }
+    this.lnd.registerInvoiceListener(listener)
+  }
   isGunAuth = () => {
     try {
       const isGunAuth = isAuthenticated()
@@ -684,6 +735,7 @@ class Mediator {
    */
   onChats = async body => {
     try {
+      
       const { token } = body
 
       await throwOnInvalidToken(token)
@@ -926,12 +978,12 @@ const register = async (alias, pass) => {
  * this first.
  * @returns {Mediator}
  */
-const createMediator = socket => {
+const createMediator = (socket,lnd) => {
   // if (isAuthenticating() || !isAuthenticated()) {
   //   throw new Error("Gun must be authenticated to create a Mediator");
   // }
 
-  return new Mediator(socket)
+  return new Mediator(socket,lnd)
 }
 
 const getGun = () => {
