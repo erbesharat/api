@@ -302,7 +302,7 @@ class Mediator {
 
     socket.on(Event.ON_AVATAR, this.onAvatar)
     socket.on(Event.ON_BLACKLIST, this.onBlacklist)
-    socket.on(Event.ON_CHATS, this.onChats)
+    socket.on(Event.ON_CHATS, this.onChatsMiddle)
     socket.on(Event.ON_DISPLAY_NAME, this.onDisplayName)
     socket.on(Event.ON_HANDSHAKE_ADDRESS, this.onHandshakeAddress)
     socket.on(Event.ON_RECEIVED_REQUESTS, this.onReceivedRequests)
@@ -729,7 +729,14 @@ class Mediator {
       })
     }
   }
-
+  /**@param {object | string} body */
+  onChatsMiddle = async body =>{
+    if(typeof body === 'string'){
+      this.onChats(JSON.parse(body))
+    } else {
+      this.onChats(body)
+    }
+  }
   /**
    * @param {Readonly<{ token: string }>} body
    */
