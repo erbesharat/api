@@ -1404,7 +1404,7 @@ module.exports = async (
         res.json({ errorMessage: "LND is down" });
       }
     }
-    const sendCoinsRequest = { addr: req.body.addr, amount: req.body.amount };
+    const sendCoinsRequest = { addr: req.body.addr, amount: req.body.amount, send_all: req.body.send_all };
     logger.debug("SendCoins", sendCoinsRequest);
     lightning.sendCoins(sendCoinsRequest, async (err, response) => {
       if (err) {
