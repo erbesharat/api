@@ -1918,9 +1918,10 @@ module.exports = async (
   const apiGunFollowsDelete = (req, res) => {
     try {
       const user = require('../services/gunDB/Mediator').getUser()
-      const {
-        body: { publicKey }
-      } = req
+      /**
+       * @type {string}
+       */
+      const publicKey = req.params.publickey
 
       user
         .get(Key.FOLLOWS)
@@ -1937,7 +1938,7 @@ module.exports = async (
 
   ap.get('api/gun/follows', apiGunFollowsGet)
   ap.post(`/api/gun/follows`, apiGunFollowsPost)
-  ap.delete(`api/gun/follows`, apiGunFollowsDelete)
+  ap.delete(`api/gun/follows/:publickey`, apiGunFollowsDelete)
 
   /**
    * Return app so that it can be used by express.
