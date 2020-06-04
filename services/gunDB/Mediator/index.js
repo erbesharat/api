@@ -258,14 +258,18 @@ const authenticate = async (alias, pass, __user) => {
   if (isFreshGun) {
     const ack = await new Promise(res => {
       _user.auth(alias, pass, _ack => {
+        //logger.error(_user.is)
         res(_ack)
       })
     })
-
     if (typeof ack.err === 'string') {
       throw new Error(ack.err)
-    } else if (typeof ack.sea === 'object') {
-      return ack.sea.pub
+      //} else if (typeof ack.sea === 'object') {
+    } else if (ack.ok) {
+      if (_user.is) {
+        return _user.is.pub
+      }
+      throw new Error('Unknown error user.is does not exist.')
     } else {
       throw new Error('Unknown error.')
     }
@@ -297,12 +301,14 @@ const authenticate = async (alias, pass, __user) => {
       res(_ack)
     })
   })
-
+  logger.error('ack')
+  logger.error(JSON.stringify(ack))
   _isAuthenticating = false
 
   if (typeof ack.err === 'string') {
     throw new Error(ack.err)
-  } else if (typeof ack.sea === 'object') {
+    //} else if (typeof ack.sea === 'object') {
+  } else if (ack.ok) {
     mySec = await mySEA.secret(_user._.sea.epub, _user._.sea)
 
     _currentAlias = alias
@@ -314,7 +320,10 @@ const authenticate = async (alias, pass, __user) => {
     API.Jobs.onOrders(_user, gun, mySEA)
     API.Jobs.lastSeenNode(_user)
 
-    return ack.sea.pub
+    if (_user.is) {
+      return _user.is.pub
+    }
+    throw new Error('Unknown error user.is does not exist.')
   } else {
     logger.error(
       `Unknown error, wrong password? Ack looks like: ${JSON.stringify(ack)}`
@@ -1231,6 +1240,7 @@ const register = async (alias, pass) => {
   instantiateGun()
 
   return authenticate(alias, pass).then(async pub => {
+    logger.error(pub)
     await API.Actions.setDisplayName('anon' + pub.slice(0, 8), user)
     await API.Actions.generateHandshakeAddress()
     await API.Actions.generateOrderAddress(user)
